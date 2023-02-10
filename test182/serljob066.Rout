@@ -1,0 +1,326 @@
+
+R version 4.1.2 (2021-11-01) -- "Bird Hippie"
+Copyright (C) 2021 The R Foundation for Statistical Computing
+Platform: x86_64-redhat-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+During startup - Warning message:
+Setting LC_CTYPE failed, using "C" 
+> Npar<-10000
+> require(pomp.orig)
+Loading required package: pomp.orig
+Loading required package: nlme
+> 
+> Args <- commandArgs(trailingOnly=TRUE)
+> print(Args)
+[1] "66"
+> ci<-eval(parse(text = Args))
+> nreps <- 1
+> #imagefile <- sprintf("serljob%3.3d.rda", ci) 
+> id <- 'fit1f1_ncov'
+> mpfile <- 'mp_ncov.csv'
+> bestfile <- sprintf("best_ncov%3.3d.csv", ci)  
+> mlefile <- sprintf("mle_ncov%3.3d.rda", ci) 
+> filtnames <- c('BS','BE','BI','BT','BR','BR1','BR2','BT1','BT2','BD','CC','BC')
+> #pfilt<-TRUE
+> pfilt<-FALSE
+> 
+> x<-read.csv('sari_city2.csv',as.is=T)[c(67:689),]
+> {
++ x$time<-as.numeric(as.Date(x[,28])-as.Date('2019-12-31'))/366+2020
++ x<-x[,c(29,10)]
++ }
+> 
+> if(ifelse(ci %% 20 ==0, 20, ci%%20)>10)
++ {
++ x<-read.csv('peru_excess.csv',r=1)[1093+(67:689),]
++ x$time<-as.numeric(as.Date(x[,1])-as.Date('2019-12-31'))/366+2020
++ x<-x[,c(3,2)]
++ }
+> city<-'MANAUS'
+> v<-read.csv('vacc20.csv',r=1)
+> v<-v[,which(names(v)==city)]
+> d<-as.numeric(as.Date('2021-1-17')-as.Date('2020-2-27'))
+> v<-c(rep(0,d),v)
+> x<-cbind(x[seq(7,nrow(x),by=7),1],apply(matrix(x[,2],ncol=7,byrow=T),1,function(x)sum(x,na.rm=T)))
+> pop<-2219580
+> #pop<-2260000
+> if(ifelse(ci %% 20 ==0, 20, ci%%20)>10)
++ pop<-426000
+> last<-function(x)x[length(x)]
+> v<-v/100
+> vac<-diff(c(v,last(v)))/(1-v)
+> import<-NA
+> 
+> x<-as.data.frame(x)
+> names(x)<-c('time','deaths')
+> x$confirm<-round(x[,2]*100)
+> x$dead<-round(x[,2])
+> x$susc<-round(0.99*pop)
+> 
+> 
+> cases<-x[,c('time','confirm','dead','susc')]
+> row.names(cases)<-1:nrow(cases)
+> print(head(cases))
+      time confirm dead    susc
+1 2020.194     300    3 2197384
+2 2020.213     200    2 2197384
+3 2020.232     800    8 2197384
+4 2020.251    1600   16 2197384
+5 2020.270    9300   93 2197384
+6 2020.290   24600  246 2197384
+> 
+> parameters <- read.csv(file=mpfile,row.names=1,as.is=TRUE)
+> districts <- names(parameters)[-c(1,2)]
+> districts <- districts[ifelse(ci %% 20 ==0, 20, ci%%20)] 
+> 
+> print(districts)
+[1] "city6"
+> #print(cbind(rownames(parameters),parameters[,districts]))
+> ifelse(pfilt==TRUE, test.sigma <- parameters$sd/1e20, test.sigma <- parameters$sd)
+[1] 0
+> names(test.sigma) <- rownames(parameters)
+> 
+> source('ncovmodel.R')
+> 
+> parameters[grep('pop',rownames(parameters)),2+ifelse(ci %% 20 ==0, 20, ci%%20)]<- pop
+> parameters[match('eta',rownames(parameters)),2+ifelse(ci %% 20 ==0, 20, ci%%20)]<- 1e-12
+> if(ifelse(ci %% 20 ==0, 20, ci%%20)>10)
++ parameters[match('eta',rownames(parameters)),2+ifelse(ci %% 20 ==0, 20, ci%%20)]<- 3.36
+> 
+> parameters[grep('susc.ini',rownames(parameters)),2+ifelse(ci %% 20 ==0, 20, ci%%20)]<- 0.99
+> parameters[grep('log.beta',rownames(parameters)),'type']<-'fixed'
+> nm<-14
+> parameters[grep('nm',rownames(parameters)),districts]<-nm
+> parameters[grep('kappah',rownames(parameters)),districts]<-365/12
+> parameters[grep('log.beta',rownames(parameters))[1:nm],'type']<-'par'
+> parameters[grep('log.beta',rownames(parameters))[-c(1:nm)],-c(1:2)]<- 3
+> 
+> print(parameters[,c('type',districts)])
+            type        city6
+sigmah     fixed 1.825000e+02
+theta        par 6.892814e-02
+phi        fixed 5.000000e-01
+p0         fixed 8.500000e-01
+gammah     fixed 1.216667e+02
+psi        fixed 5.555444e-01
+kappah     fixed 3.041667e+01
+eta        fixed 1.000000e-12
+bpop       fixed 2.219580e+06
+alpha        par 1.796939e+00
+nm         fixed 1.400000e+01
+log.beta     par 5.946820e+00
+log.beta1    par 4.721226e+00
+log.beta2    par 4.934661e+00
+log.beta3    par 5.093582e+00
+log.beta4    par 5.230677e+00
+log.beta5    par 5.299706e+00
+log.beta6    par 5.008596e+00
+log.beta7    par 5.426736e+00
+log.beta8    par 5.091323e+00
+log.beta9    par 5.411091e+00
+log.beta10   par 5.543983e+00
+log.beta11   par 5.600081e+00
+log.beta12   par 5.585468e+00
+log.beta13   par 6.170865e+00
+tau          par 1.217108e-02
+BS.0         ivp 9.900000e-01
+BE.0         ivp 5.575515e-05
+BI.0         ivp 5.575515e-05
+BT.0         ivp 5.575515e-06
+BD.0         ivp 0.000000e+00
+BR.0         ivp 3.290588e-03
+BR1.0        ivp 3.290588e-03
+BR2.0        ivp 3.290588e-03
+BT1.0        ivp 5.575515e-06
+BT2.0        ivp 5.575515e-06
+CC.0         ivp 0.000000e+00
+susc.ini   fixed 9.900000e-01
+infe.ini   fixed 1.000000e+04
+> 
+> ndists <- length(districts)
+> njobs <- nreps*ndists
+> #seeds <- lavaseed(n=njobs)
+> seeds<-ceiling(10^runif(n=njobs,min=7,max=9))
+> tic<-Sys.time()
+> joblist <- vector(mode='list',length=njobs)
+> j <- 0
+> for (d in districts) {
++   mle <- district.pomp(cases,vac,import,rownames(parameters),parameters$type,parameters['nm',d])
++   test.params <- parameters[[d]]
++   names(test.params) <- rownames(parameters)
++   theta.x <- as.matrix(particles(mle,Np=nreps,center=par.trans(test.params),sd=test.sigma)[rownames(parameters),])
++   for (r in 1:nreps) {
++     j <- j+1
++     x <- theta.x[,r]
++     names(x) <- rownames(theta.x)
++ 	print(names(x))
++     joblist[[j]] <- list(
++                          mle=mle,
++                          district=d,
++                          seed=seeds[j],
++                          theta=x,
++                          sigma=test.sigma,
++                          ivpnames= rownames(parameters)[parameters$type=='ivp'],
++                          estnames=rownames(parameters)[parameters$type=='par'],
++                          filtnames=filtnames
++                          )
++   }
++ }
+ [1] "sigmah"     "theta"      "phi"        "p0"         "gammah"    
+ [6] "psi"        "kappah"     "eta"        "bpop"       "alpha"     
+[11] "nm"         "log.beta"   "log.beta1"  "log.beta2"  "log.beta3" 
+[16] "log.beta4"  "log.beta5"  "log.beta6"  "log.beta7"  "log.beta8" 
+[21] "log.beta9"  "log.beta10" "log.beta11" "log.beta12" "log.beta13"
+[26] "tau"        "BS.0"       "BE.0"       "BI.0"       "BT.0"      
+[31] "BD.0"       "BR.0"       "BR1.0"      "BR2.0"      "BT1.0"     
+[36] "BT2.0"      "CC.0"       "susc.ini"   "infe.ini"  
+> dyn.load('ncovmodel.so')
+> done <- 0
+> for(i in 1:nreps){
++ joblist[[i]] <-
++ with(joblist[[i]],
++                     {
++                       save.seed <- .Random.seed
++                       set.seed(seed)
++                       x <- mif(
++                                mle,
++                                Nmif=1,
++                                ivps=ivpnames,
++                                pars=estnames,
++                                stvs=filtnames,
++                                alg.pars=list(Np=Npar,CC=4,T0=nrow(cases),cooling.factor=0.95),
++                                start=theta,
++                                rw.sd=sigma,
++                                max.fail=1000,
++                                weighted=T,
++                                warn=F
++                                )
++                       result <- list(
++                                      mle=x,
++                                      district=district,
++                                      seed=seed,
++                                      rngstate=.Random.seed
++                                      )
++                       .Random.seed <<- save.seed
++                       result
++                     }
++                     )
++ }
+> 
+> joblist <- joblist[!sapply(joblist,is.null)]
+> #save.image(file=imagefile)
+> done <- done+1
+> 
+> while (done < ifelse(pfilt==TRUE,1,10)) {
++ for(i in 1:nreps){
++ joblist[[i]] <-
++ with(joblist[[i]],
++                     {
++                         save.seed <- .Random.seed
++                         .Random.seed <<- rngstate
++                         if (done < 2) {
++                           x <- continue(mle,Nmif=11,weighted=T,max.fail=1000)
++                         } else {
++                           x <- continue(mle,Nmif=11,weighted=T,max.fail=1000)
++                         }
++                         result <- list(
++                                        mle=x,
++                                        district=district,
++                                        seed=seed,
++                                        rngstate=.Random.seed
++                                        )
++                         .Random.seed <<- save.seed
++                         result
++                       }
++                       )
++ }
++   joblist <- joblist[!sapply(joblist,is.null)]
++  # save.image(file=imagefile)
++   done <- done+1
++ }
+> 
+> for(i in 1:nreps){
++ joblist[[i]] <-
++ with(joblist[[i]],
++                     {
++                       save.seed <- .Random.seed
++                       .Random.seed <<- rngstate
++                       ff <- vector(mode='list')
++                       for (n in 1:10)
++                         ff[[n]] <- pfilter(mle,max.fail=1000)
++                       result <- list(
++                                      mle=mle,
++                                      district=district,
++                                      seed=seed,
++                                      rngstate=rngstate,
++                                      nfail=sapply(ff,function(x)x$nfail),
++                                      loglik=sapply(ff,function(x)x$loglik)
++                                      )
++                       .Random.seed <<- save.seed
++                       result
++                     },
++                     joblist=joblist
++                     )
++ }
+> joblist <- joblist[!sapply(joblist,is.null)]
+> #save.image(file=imagefile)
+> 
+> 
+> x <- do.call(
++              rbind,
++              lapply(
++                     joblist,
++                     function (x) {
++                       cbind(
++                             data.frame(
++                                        district=x$district,
++                                        loglik=mean(x$loglik),
++                                        loglik.sd=sd(x$loglik),
++                                        nfail.max=max(x$nfail),
++                                        nfail.min=min(x$nfail)
++                                        ),
++                             as.data.frame(t(par.untrans(coef(x$mle))))
++                             )
++                     }
++                     )
++              )
+> 
+> best.ind <- tapply(1:nrow(x),x$district,function(k)k[which.max(x$loglik[k])])
+> best <- x[best.ind,]
+> rownames(best) <- as.character(best$district)
+> best$district <- NULL
+> best <- best[order(rownames(best)),]
+> write.csv(best,file=bestfile)
+> 
+> mle <- lapply(
++               joblist[best.ind],
++               function(x)x$mle
++               )
+> names(mle) <- sapply(joblist[best.ind],function(x)x$district)
+> mle <- mle[order(names(mle))]
+> save(list='mle',file=mlefile)
+> toc <- Sys.time()
+> print(toc-tic)
+Time difference of 38.71412 mins
+> 
+> 
+> dyn.unload('ncovmodel.so')
+> 
+> quit()
+> proc.time()
+    user   system  elapsed 
+2307.245    6.328 2323.305 
